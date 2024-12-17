@@ -4,15 +4,12 @@ from Animal.models import Animal
 
 class Weight(models.Model):
     animal = models.ForeignKey(Animal, on_delete=models.CASCADE, related_name="weights")
-    weight = models.FloatField()  # The weight of the animal (e.g., in kg or pounds)
-    recorded_at = models.DateField(auto_now_add=True)  # Automatically set the date when the record is created
+    weight = models.FloatField()  # The weight of the animal in kilograms
+    recorded_at = models.DateField()  # Allows user to specify the date
 
     class Meta:
-        # Enforce unique weight records per animal per month
         constraints = [
-            models.UniqueConstraint(
-                fields=['animal', 'recorded_at'], name='unique_weight_per_month'
-            )
+            models.UniqueConstraint(fields=['animal', 'recorded_at'], name='unique_weight_per_date')
         ]
 
     def __str__(self):

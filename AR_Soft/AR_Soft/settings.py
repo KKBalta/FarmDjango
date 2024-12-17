@@ -39,9 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'Farmer',
-    'Animal'
-    'Weight'
-    
+    'Animal',
+    'Weight',
+    'Slaughter'
 ]
 
 MIDDLEWARE = [
