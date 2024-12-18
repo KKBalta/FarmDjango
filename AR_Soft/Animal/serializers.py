@@ -16,9 +16,10 @@ class GroupSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description']
 
 class AnimalGroupSerializer(serializers.ModelSerializer):
-    group = GroupSerializer()  # Include group details in the response
+    group = GroupSerializer()  # Nested Group details
+    eartag = serializers.CharField(source='animal.eartag', read_only=True)  # Fetch eartag from Animal model
 
     class Meta:
         model = AnimalGroup
-        fields = ['id', 'animal', 'group', 'assigned_at']
+        fields = ['id', 'animal', 'eartag', 'group', 'assigned_at']
         read_only_fields = ['assigned_at']  # Read-only fields
