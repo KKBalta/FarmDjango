@@ -1,18 +1,18 @@
 # animal/views.py
-from rest_framework import generics
+
+from rest_framework import generics, status
+from rest_framework.response import Response
 from .models import Animal, Group, AnimalGroup
 from .serializers import AnimalSerializer, AnimalGroupSerializer, GroupSerializer
 
-
 class AnimalListView(generics.ListCreateAPIView):
     """
-    API view to list all animals or create a new one.
+    API view to list all animals or create a new one (or multiple).
     Includes filtering by company_id, race, gender, and is_slaughtered.
     """
     serializer_class = AnimalSerializer
 
     def get_queryset(self):
-        # Start with all animals
         queryset = Animal.objects.all()
 
         # Filter by company_id if provided
@@ -33,7 +33,7 @@ class AnimalListView(generics.ListCreateAPIView):
                 queryset = queryset.filter(gender=gender_bool)
             except ValueError:
                 pass  # Ignore invalid gender filter
-        
+
         # Filter by is_slaughtered if provided
         is_slaughtered = self.request.query_params.get('is_slaughtered')
         if is_slaughtered is not None:
@@ -43,6 +43,23 @@ class AnimalListView(generics.ListCreateAPIView):
 
         return queryset
 
+    def create(self, request, *args, **kwargs):
+        """
+        Override create to support both single and bulk creates.
+        """
+        # Check if the incoming data is a list (bulk create) or a single object
+        if isinstance(request.data, list):
+            serializer = self.get_serializer(data=request.data, many=True)
+        else:
+            serializer = self.get_serializer(data=request.data)
+
+        # Validate and save
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        # Return the created object(s)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class AnimalDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -51,9 +68,11 @@ class AnimalDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
 
+
 ############################
 ## GROUP ##
 ############################
+
 class GroupListView(generics.ListCreateAPIView):
     """
     API view to list all groups or create a new group.
@@ -67,6 +86,7 @@ class GroupDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+
 
 class AnimalGroupListView(generics.ListCreateAPIView):
     """
@@ -89,7 +109,21 @@ class AnimalGroupListView(generics.ListCreateAPIView):
             queryset = queryset.filter(group_id=group_id)
 
         return queryset
+    
+    def create(self, request, *args, **kwargs):
+        """
+        Override create to handle both single and bulk creation of AnimalGroup.
+        """
+        # If the request data is a list => bulk create
+        if isinstance(request.data, list):
+            serializer = self.get_serializer(data=request.data, many=True)
+        else:
+            serializer = self.get_serializer(data=request.data)
 
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
 class AnimalGroupDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     API view to retrieve, update, or delete a specific animal-group assignment by ID.
