@@ -58,27 +58,21 @@ class RationTableViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='price')
     def table_price(self, request, pk=None):
-        """
-        Custom action to calculate the total price of a RationTable.
-        Endpoint: GET /ration-tables/<pk>/price/
-        """
-        # 1) Fetch the RationTable
-        table = self.get_object()  # uses pk from the URL
-
-        # 2) Get all RationTableComponents linked to this table
+        table = self.get_object()
         components = RationTableComponent.objects.filter(ration_table=table)
+        total_price = sum(float(item.component.price) * float(item.quantity) for item in components)
+        return Response({"ration_table_id": table.id, "total_price": total_price})
 
-        # 3) Calculate total price (price * quantity)
-        total_price = 0
-        for item in components:
-            total_price += float(item.component.price) * float(item.quantity)
-
-        # 4) Return JSON with the total
-        return Response({
-            "ration_table_id": table.id,
-            "ration_table_name": table.name,
-            "total_price": total_price
-        })
+    @action(detail=True, methods=['get'], url_path='dry-matter')
+    def table_dry_matter(self, request, pk=None):
+        """
+        Calculate total dry matter = sum of (quantity * (dry_matter/100))
+        for each component in the ration table.
+        """
+        table = self.get_object()
+        components = RationTableComponent.objects.filter(ration_table=table)
+        total_dm = sum(item.calculate_dry_matter() for item in components)
+        return Response({"ration_table_id": table.id, "total_dry_matter": total_dm})
 
 
 class RationTableComponentViewSet(viewsets.ModelViewSet):
