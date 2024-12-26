@@ -15,8 +15,7 @@ class AnimalRationLogViewSet(viewsets.ModelViewSet):
     """
     queryset = AnimalRationLog.objects.all()
     serializer_class = AnimalRationLogSerializer
-    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated to access these views
-
+   
     def create(self, request, *args, **kwargs):
         """
         Override create to handle custom logic.
