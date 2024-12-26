@@ -14,6 +14,7 @@ router.register(r'ration-tables', RationTableViewSet, basename='ration-table')
 router.register(r'ration-table-components', RationTableComponentViewSet, basename='ration-table-component')
 router.register(r'ration-component-changes', RationComponentChangeViewSet, basename='ration-component-change')
 
+
 urlpatterns = [
     path('', include(router.urls)),
 ]
