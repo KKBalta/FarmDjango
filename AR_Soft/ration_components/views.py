@@ -34,7 +34,7 @@ class RationComponentViewSet(viewsets.ModelViewSet):
         # Check for changes and log them
         if old_values != {key: new_values.get(key) for key in old_values.keys()}:
             RationComponentChange.objects.create(
-                ration_table_component_id=None,  # You can adjust this if you have a ration table component ID to log
+                ration_table_component_id=instance.id,  # You can adjust this if you have a ration table component ID to log
                 ration_table_name=instance.name,
                 component_name=instance.name,
                 action='UPDATED',
