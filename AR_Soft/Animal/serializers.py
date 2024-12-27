@@ -8,7 +8,7 @@ class AnimalSerializer(serializers.ModelSerializer):
             'id', 'eartag', 'company', 'race', 'gender', 'room', 'cost',
             'is_slaughtered', 'feed_cost', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['created_at', 'updated_at', 'feed_cost']
+        read_only_fields = ['created_at', 'updated_at', 'feed_cost','feed_cost']
 
 
 class GroupSerializer(serializers.ModelSerializer):
