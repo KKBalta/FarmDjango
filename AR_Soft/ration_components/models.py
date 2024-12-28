@@ -36,30 +36,3 @@ class RationTableComponent(models.Model):
 
     def calculate_dry_matter(self):
         return self.quantity * (self.component.dry_matter / 100)
-
-
-class RationComponentChange(models.Model):
-    ACTION_CHOICES = [
-        ('CREATED', 'Created'),
-        ('UPDATED', 'Updated'),
-        ('DELETED', 'Deleted'),
-    ]
-
-    ration_table_component_id = models.IntegerField(null=True, blank=True)  # Keep the ID even if the entry is deleted
-    ration_table_name = models.CharField(max_length=255)  # Preserve the table name
-    component_name = models.CharField(max_length=255)  # Preserve the component name
-    action = models.CharField(max_length=10, choices=ACTION_CHOICES)  # Log the action
-    old_quantity = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    new_quantity = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    old_price = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    new_price = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    old_dry_matter = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    new_dry_matter = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    old_calori = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    new_calori = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    old_nisasta = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    new_nisasta = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    changed_at = models.DateTimeField(default=timezone.now)  # Auto-add timestamp
-
-    def __str__(self):
-        return f"{self.action} on {self.component_name} in {self.ration_table_name} at {self.changed_at}"

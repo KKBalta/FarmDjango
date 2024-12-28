@@ -3,12 +3,11 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from .models import RationComponent, RationTable, RationTableComponent, RationComponentChange
+from .models import RationComponent, RationTable, RationTableComponent
 from .serializers import (
     RationComponentSerializer, 
     RationTableSerializer, 
-    RationTableComponentSerializer, 
-    RationComponentChangeSerializer
+    RationTableComponentSerializer
 )
 
 
@@ -16,64 +15,10 @@ class RationComponentViewSet(viewsets.ModelViewSet):
     queryset = RationComponent.objects.all()
     serializer_class = RationComponentSerializer
 
-    def update(self, request, *args, **kwargs):
-        # Capture the old object before updating
-        instance = self.get_object()
-        old_values = {
-            'price': instance.price,
-            'dry_matter': instance.dry_matter,
-            'calori': instance.calori,
-            'nisasta': instance.nisasta,
-        }
-
-        response = super().update(request, *args, **kwargs)
-
-        # Capture the new values from the request
-        new_values = request.data
-
-        # Check for changes and log them
-        if old_values != {key: new_values.get(key) for key in old_values.keys()}:
-            RationComponentChange.objects.create(
-                ration_table_component_id=instance.id,  # You can adjust this if you have a ration table component ID to log
-                ration_table_name=instance.name,
-                component_name=instance.name,
-                action='UPDATED',
-                old_price=old_values['price'],
-                new_price=new_values.get('price', old_values['price']),
-                old_dry_matter=old_values['dry_matter'],
-                new_dry_matter=new_values.get('dry_matter', old_values['dry_matter']),
-                old_calori=old_values['calori'],
-                new_calori=new_values.get('calori', old_values['calori']),
-                old_nisasta=old_values['nisasta'],
-                new_nisasta=new_values.get('nisasta', old_values['nisasta']),
-                changed_at=timezone.now()
-            )
-
-        return response
-
 
 class RationTableViewSet(viewsets.ModelViewSet):
     queryset = RationTable.objects.all()
     serializer_class = RationTableSerializer
-
-    @action(detail=True, methods=['get'], url_path='price')
-    def table_price(self, request, pk=None):
-        table = self.get_object()
-        components = RationTableComponent.objects.filter(ration_table=table)
-        total_price = sum(float(item.component.price) * float(item.quantity) for item in components)
-        return Response({"ration_table_id": table.id, "total_price": total_price})
-
-    @action(detail=True, methods=['get'], url_path='dry-matter')
-    def table_dry_matter(self, request, pk=None):
-        """
-        Calculate total dry matter = sum of (quantity * (dry_matter/100))
-        for each component in the ration table.
-        """
-        table = self.get_object()
-        components = RationTableComponent.objects.filter(ration_table=table)
-        total_dm = sum(item.calculate_dry_matter() for item in components)
-        return Response({"ration_table_id": table.id, "total_dry_matter": total_dm})
-
 
 class RationTableComponentViewSet(viewsets.ModelViewSet):
     queryset = RationTableComponent.objects.all()
@@ -102,65 +47,3 @@ class RationTableComponentViewSet(viewsets.ModelViewSet):
         
         # Return a 201 Created response with the created object(s)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def perform_create(self, serializer):
-        """
-        Override perform_create if you need to log *new* RationTableComponents.
-        """
-        # By default, serializer.save() returns either one instance or a list of instances
-        # depending on many=True
-        instances = serializer.save()
-
-        # If it's a single create, wrap it in a list for consistent handling
-        if not isinstance(instances, list):
-            instances = [instances]
-
-        # Log creation in RationComponentChange for each new item
-        for instance in instances:
-            RationComponentChange.objects.create(
-                ration_table_component_id=instance.id,
-                ration_table_name=instance.ration_table.name,
-                component_name=instance.component.name,
-                action='CREATED',
-                old_quantity=None,
-                new_quantity=instance.quantity,
-            )
-
-    def update(self, request, *args, **kwargs):
-        # Log changes in RationComponentChange
-        instance = self.get_object()
-        old_quantity = instance.quantity
-        new_quantity = request.data.get('quantity', old_quantity)
-
-        response = super().update(request, *args, **kwargs)
-
-        # Log changes only if the quantity has changed
-        if str(old_quantity) != str(new_quantity):
-            RationComponentChange.objects.create(
-                ration_table_component_id=instance.id,
-                ration_table_name=instance.ration_table.name,
-                component_name=instance.component.name,
-                action='UPDATED',
-                old_quantity=old_quantity,
-                new_quantity=new_quantity,
-            )
-        return response
-
-    def destroy(self, request, *args, **kwargs):
-        # Log deletion of RationTableComponent
-        instance = self.get_object()
-
-        RationComponentChange.objects.create(
-            ration_table_component_id=instance.id,
-            ration_table_name=instance.ration_table.name,
-            component_name=instance.component.name,
-            action='DELETED',
-            old_quantity=instance.quantity,
-            new_quantity=None,
-        )
-
-        return super().destroy(request, *args, **kwargs)
-
-class RationComponentChangeViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = RationComponentChange.objects.all()
-    serializer_class = RationComponentChangeSerializer
