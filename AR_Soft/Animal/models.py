@@ -1,6 +1,8 @@
-# animal/models.py
+from django.utils.timezone import localtime, make_aware, is_naive
 from django.db import models
 from Farmer.models import Company  # Import Company model from the company app
+from animal_ration.models import AnimalRationLog
+from ration_components.models import RationTableComponent
 
 class Animal(models.Model):
     eartag = models.CharField(max_length=255, unique=True)  # Unique identifier for the animal
@@ -17,10 +19,7 @@ class Animal(models.Model):
     def __str__(self):
         return f"{self.eartag} ({self.race})"
 
-
-
-
-
+    
 #### Animal Grouping ####
 
 

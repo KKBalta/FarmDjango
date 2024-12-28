@@ -1,8 +1,8 @@
 from django.apps import AppConfig
 
-class AnimalConfig(AppConfig):
+class RationLogsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'Animal'
+    name = 'ration_logs'
 
     def ready(self):
-        import Animal.signals  # Import the signals module
+        import ration_logs.signals

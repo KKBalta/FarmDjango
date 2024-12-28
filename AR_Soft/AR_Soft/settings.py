@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'Weight',
     'Slaughter',
     'animal_ration',
-    'ration_components'
+    'ration_components',
+    'ration_logs'
 ]
 
 MIDDLEWARE = [
