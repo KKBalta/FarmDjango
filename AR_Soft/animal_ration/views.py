@@ -16,27 +16,6 @@ class AnimalRationLogViewSet(viewsets.ModelViewSet):
     queryset = AnimalRationLog.objects.all()
     serializer_class = AnimalRationLogSerializer
    
-    def create(self, request, *args, **kwargs):
-        """
-        Override create to handle custom logic.
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
-    def update(self, request, *args, **kwargs):
-        """
-        Override update to handle custom logic for ration log transitions.
-        """
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data)
-
     @action(detail=True, methods=['post'])
     def deactivate(self, request, pk=None):
         """
@@ -47,11 +26,11 @@ class AnimalRationLogViewSet(viewsets.ModelViewSet):
             return Response({"detail": "This ration log is already inactive."}, status=status.HTTP_400_BAD_REQUEST)
 
         log.is_active = False
-        log.end_date = request.data.get('end_date')  # Allow setting an end date
+        log.end_date = request.data.get('end_date', None)
         log.save()
 
         return Response({"detail": "Ration log deactivated successfully."}, status=status.HTTP_200_OK)
-
+    
     def get_queryset(self):
         """
         Optionally filter logs by animal or ration table.
