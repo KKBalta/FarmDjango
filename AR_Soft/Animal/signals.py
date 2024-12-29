@@ -1,4 +1,5 @@
 from django.db.models.signals import post_save
+from django.utils.timezone import now
 from django.dispatch import receiver
 from animal_ration.models import AnimalRationLog
 from ration_components.models import RationTable
@@ -20,3 +21,21 @@ def assign_default_ration(sender, instance, created, **kwargs):
             print(f"Default ration assigned to animal {instance.eartag}.")
         else:
             print("Default ration table not found. Please create one.")
+
+### signal for ending ration log for animal 
+@receiver(post_save, sender=Animal)
+def handle_slaughtered_animal(sender, instance, **kwargs):
+    # Check if the animal is slaughtered
+    if instance.is_slaughtered:
+        try:
+            # Get the most recent active ration log for this animal
+            last_active_log = AnimalRationLog.objects.filter(animal=instance, is_active=True).latest('start_date')
+
+            # Update end_date and deactivate the log
+            last_active_log.end_date = now()
+            last_active_log.is_active = False
+            last_active_log.save()
+
+        except AnimalRationLog.DoesNotExist:
+            # No active ration logs found
+            print(f"No active ration logs found for animal {instance.eartag}.")
