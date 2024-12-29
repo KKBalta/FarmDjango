@@ -47,3 +47,16 @@ class RationTableComponentViewSet(viewsets.ModelViewSet):
         
         # Return a 201 Created response with the created object(s)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    class RationTableViewSet(viewsets.ModelViewSet):
+        queryset = RationTable.objects.all()
+        serializer_class = RationTableSerializer
+
+        @action(detail=True, methods=['get'])
+        def compute_cost(self, request, pk=None):
+            """
+            Return the cost of a specific RationTable.
+            """
+            ration_table = self.get_object()
+            cost = ration_table.compute_cost()
+            return Response({'id': ration_table.id, 'name': ration_table.name, 'cost': cost})

@@ -19,6 +19,17 @@ class RationTable(models.Model):
     components = models.ManyToManyField(RationComponent, through='RationTableComponent')
     description = models.TextField(blank=True, null=True)
 
+    def compute_cost(self):
+        """
+        Compute the total cost of the ration table by summing up
+        the cost of all components in the table.
+        Includes detailed debugging information.
+        """
+        total_cost = 0
+        for component in self.rationtablecomponent_set.all():
+            total_cost += component.quantity * component.component.price
+        return total_cost
+    
     def __str__(self):
         return self.name
 

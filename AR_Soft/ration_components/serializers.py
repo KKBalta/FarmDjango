@@ -17,6 +17,11 @@ class RationTableComponentSerializer(serializers.ModelSerializer):
 
 # Serializer for RationTable
 class RationTableSerializer(serializers.ModelSerializer):
+    cost = serializers.SerializerMethodField()
+
     class Meta:
         model = RationTable
-        fields = ['id', 'name', 'description']
+        fields = ['id', 'name', 'description', 'cost']
+
+    def get_cost(self, obj):
+        return obj.compute_cost()
