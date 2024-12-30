@@ -1,35 +1,45 @@
 from django.db import models
-from django.utils import timezone
+from django.utils.timezone import now
+from .managers import ActiveManager
 
 
 class RationComponent(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    dry_matter = models.DecimalField(max_digits=5, decimal_places=2, help_text="Dry matter percentage of the component", null=False, blank=False)
-    calori = models.DecimalField(max_digits=5, decimal_places=2, null=False, blank=False)
-    nisasta = models.DecimalField(max_digits=5, decimal_places=2, null=False, blank=False)
-    price = models.DecimalField(max_digits=5, decimal_places=2, null=False, blank=False)
+    dry_matter = models.DecimalField(max_digits=5, decimal_places=2, help_text="Dry matter percentage")
+    calori = models.DecimalField(max_digits=5, decimal_places=2)
+    nisasta = models.DecimalField(max_digits=5, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)  # Add soft delete field
+
+     # Attach custom managers
+    objects = ActiveManager()  # Default manager excludes soft-deleted records
+    all_objects = models.Manager()  # Includes all records
+
+    def delete(self, *args, **kwargs):
+        # Soft delete by setting deleted_at
+        self.deleted_at = now()
+        self.save()
+
+    def is_deleted(self):
+        return self.deleted_at is not None
 
     def __str__(self):
         return self.name
-
 
 class RationTable(models.Model):
     name = models.CharField(max_length=255)
     components = models.ManyToManyField(RationComponent, through='RationTableComponent')
     description = models.TextField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def compute_cost(self):
-        """
-        Compute the total cost of the ration table by summing up
-        the cost of all components in the table.
-        Includes detailed debugging information.
-        """
-        total_cost = 0
-        for component in self.rationtablecomponent_set.all():
-            total_cost += component.quantity * component.component.price
-        return total_cost
-    
+        return sum(
+            component.quantity * component.component.price
+            for component in self.rationtablecomponent_set.all()
+        )
+
     def __str__(self):
         return self.name
 
@@ -38,12 +48,10 @@ class RationTableComponent(models.Model):
     ration_table = models.ForeignKey(RationTable, on_delete=models.CASCADE)
     component = models.ForeignKey(RationComponent, on_delete=models.PROTECT)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('ration_table', 'component')
 
     def __str__(self):
         return f"{self.ration_table.name} - {self.component.name}"
-
-    def calculate_dry_matter(self):
-        return self.quantity * (self.component.dry_matter / 100)
