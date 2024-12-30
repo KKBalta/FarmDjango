@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/', include('Weight.urls')),
     path('api/', include('Slaughter.urls')),
     path('api/', include('animal_ration.urls')),
-    path('api/', include('ration_components.urls'))
+    path('api/', include('ration_components.urls')),
+    path('api/', include('ration_logs.urls'))
     
 ]

@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# Default ration table name
+DEFAULT_RATION_NAME = "Base Ration"
 
 # Application definition
 
