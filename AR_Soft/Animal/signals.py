@@ -4,38 +4,42 @@ from django.dispatch import receiver
 from animal_ration.models import AnimalRationLog
 from ration_components.models import RationTable
 from .models import Animal  # Import the Animal model
+from django.conf import settings
 
 @receiver(post_save, sender=Animal)
 def assign_default_ration(sender, instance, created, **kwargs):
-    if created:  # Only run when a new animal is created
-        default_ration_table = RationTable.objects.filter(name="Base Ration").first()
+    if created:  # Only assign when a new animal is created
+        default_ration_table_name = getattr(settings, 'DEFAULT_RATION_NAME', 'Base Ration')
+        default_ration_table = RationTable.objects.filter(name=default_ration_table_name).first()
 
         if default_ration_table:
-            # Assign the default ration
             AnimalRationLog.objects.create(
                 animal=instance,
                 ration_table=default_ration_table,
-                start_date=instance.created_at,
+                start_date=now(),
                 is_active=True
             )
-            print(f"Default ration assigned to animal {instance.eartag}.")
+            print(f"Default ration '{default_ration_table_name}' assigned to animal {instance.eartag}.")
         else:
-            print("Default ration table not found. Please create one.")
+            print(f"Default ration '{default_ration_table_name}' not found. Please create one.")
+
 
 ### signal for ending ration log for animal 
 @receiver(post_save, sender=Animal)
 def handle_slaughtered_animal(sender, instance, **kwargs):
-    # Check if the animal is slaughtered
     if instance.is_slaughtered:
         try:
-            # Get the most recent active ration log for this animal
-            last_active_log = AnimalRationLog.objects.filter(animal=instance, is_active=True).latest('start_date')
+            # Fetch the active ration log for the animal
+            last_active_log = AnimalRationLog.objects.filter(
+                animal=instance,
+                is_active=True
+            ).latest('start_date')
 
-            # Update end_date and deactivate the log
+            # Deactivate the ration log
             last_active_log.end_date = now()
             last_active_log.is_active = False
             last_active_log.save()
 
+            print(f"Ration log ended for slaughtered animal {instance.eartag}.")
         except AnimalRationLog.DoesNotExist:
-            # No active ration logs found
-            print(f"No active ration logs found for animal {instance.eartag}.")
+            print(f"No active ration log found for animal {instance.eartag}.")
