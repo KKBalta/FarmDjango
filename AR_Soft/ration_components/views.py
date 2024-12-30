@@ -20,6 +20,15 @@ class RationTableViewSet(viewsets.ModelViewSet):
     queryset = RationTable.objects.all()
     serializer_class = RationTableSerializer
 
+    @action(detail=True, methods=['get'])
+    def compute_cost(self, request, pk=None):
+        """
+        Recalculate and return the cost of a specific RationTable.
+        """
+        ration_table = self.get_object()
+        cost = ration_table.compute_cost()
+        return Response({'id': ration_table.id, 'name': ration_table.name, 'cost': cost})
+
 class RationTableComponentViewSet(viewsets.ModelViewSet):
     queryset = RationTableComponent.objects.all()
     serializer_class = RationTableComponentSerializer
