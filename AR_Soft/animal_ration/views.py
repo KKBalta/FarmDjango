@@ -45,3 +45,10 @@ class AnimalRationLogViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(ration_table__id=ration_table_id)
 
         return queryset
+    
+    @action(detail=False, methods=['get'], url_path='active')
+    def get_active_rations(self, request):
+        queryset = self.get_queryset().filter(is_active=True)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
