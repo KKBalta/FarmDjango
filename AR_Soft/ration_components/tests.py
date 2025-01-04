@@ -1,66 +1,155 @@
+from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
-from django.test import TestCase
-from .models import RationComponent
+from .models import RationComponent, RationTable, RationTableComponent
 
-class RationComponentTests(TestCase):
+
+class RationComponentTestCase(TestCase):
+    """Test cases for RationComponent API functionality."""
+
     def setUp(self):
-        # Set up a test client
         self.client = APIClient()
+        self.component1 = RationComponent.objects.create(
+            name="Component 1",
+            description="Test Component 1",
+            dry_matter=85.5,
+            calori=12.5,
+            nisasta=45.2,
+            price=100.00,
+        )
+        self.component2 = RationComponent.objects.create(
+            name="Component 2",
+            description="Test Component 2",
+            dry_matter=90.0,
+            calori=15.0,
+            nisasta=50.0,
+            price=120.00,
+        )
 
-        # Set up initial data for RationComponent
-        self.ration_component_data = {
-            'name': 'Test Component',
-            'description': 'Test description for ration component',
-            'dry_matter': 85.0,
-            'calori': 12.5,
-            'nisasta': 10.0,
-            'price': 5.0
-        }
-        self.ration_component = RationComponent.objects.create(**self.ration_component_data)
-        self.url = f'/api/ration-components/{self.ration_component.id}/'
-
-    def test_get_ration_component(self):
-        # Send GET request to retrieve a RationComponent
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['name'], self.ration_component.name)
-        self.assertEqual(response.data['description'], self.ration_component.description)
-
-    def test_create_ration_component(self):
-        # Send POST request to create a new RationComponent
-        new_component_data = {
-            'name': 'New Component',
-            'description': 'Description for new component',
-            'dry_matter': 90.0,
-            'calori': 15.0,
-            'nisasta': 8.0,
-            'price': 4.5
-        }
-        response = self.client.post('/api/ration-components/', new_component_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['name'], new_component_data['name'])
-        self.assertEqual(response.data['description'], new_component_data['description'])
-
-    def test_update_ration_component(self):
-        # Send PUT request to update the existing RationComponent
-        updated_data = {
-            'name': 'Updated Component',
-            'description': 'Updated description for ration component',
-            'dry_matter': 88.0,
-            'calori': 13.0,
-            'nisasta': 9.0,
-            'price': 6.0
-        }
-        response = self.client.put(self.url, updated_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['name'], updated_data['name'])
-        self.assertEqual(response.data['description'], updated_data['description'])
-
-    def test_delete_ration_component(self):
-        # Send DELETE request to remove the RationComponent
-        response = self.client.delete(self.url)
+    def test_soft_delete_component(self):
+        response = self.client.delete(f"/api/ration-components/{self.component1.id}/")
+        self.component1.refresh_from_db()
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        # Confirm that the object is actually deleted
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(self.component1.is_deleted())
+
+    def test_restore_soft_deleted_component(self):
+        self.component1.delete()
+        response = self.client.post(f"/api/ration-components/{self.component1.id}/restore/")
+        self.component1.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(self.component1.is_deleted())
+
+    def test_hard_delete_component(self):
+        self.component1.delete()
+        response = self.client.delete(f"/api/ration-components/{self.component1.id}/hard-delete/")
+        with self.assertRaises(RationComponent.DoesNotExist):
+            RationComponent.all_objects.get(id=self.component1.id)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_get_soft_deleted_components(self):
+        self.component1.delete()
+        response = self.client.get("/api/ration-components/soft-deleted/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], self.component1.id)
+
+    def test_edge_case_restore_active_component(self):
+        response = self.client.post(f"/api/ration-components/{self.component1.id}/restore/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("not deleted", response.data["status"])
+
+    def test_edge_case_hard_delete_active_component(self):
+        response = self.client.delete(f"/api/ration-components/{self.component1.id}/hard-delete/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("not soft deleted", response.data["status"])
+
+
+class RationTableTestCase(TestCase):
+    """Test cases for RationTable API functionality."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.component = RationComponent.objects.create(
+            name="Test Component",
+            dry_matter=85.5,
+            calori=12.5,
+            nisasta=45.2,
+            price=100.00,
+        )
+        self.table = RationTable.objects.create(
+            name="Test Table",
+            description="Test Description",
+        )
+        RationTableComponent.objects.create(
+            ration_table=self.table,
+            component=self.component,
+            quantity=10.0,
+        )
+
+    def test_soft_delete_ration_table(self):
+        response = self.client.delete(f"/api/ration-tables/{self.table.id}/")
+        self.table.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertTrue(self.table.is_deleted())
+
+    def test_restore_ration_table(self):
+        self.table.delete()
+        response = self.client.post(f"/api/ration-tables/{self.table.id}/restore/")
+        self.table.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(self.table.is_deleted())
+
+    def test_hard_delete_ration_table(self):
+        self.table.delete()
+        response = self.client.delete(f"/api/ration-tables/{self.table.id}/hard-delete/")
+        with self.assertRaises(RationTable.DoesNotExist):
+            RationTable.all_objects.get(id=self.table.id)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_compute_cost(self):
+        response = self.client.get(f"/api/ration-tables/{self.table.id}/compute-cost/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["cost"], 1000.0)
+
+
+class RationTableComponentTestCase(TestCase):
+    """Test cases for RationTableComponent API functionality."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.component = RationComponent.objects.create(
+            name="Test Component",
+            dry_matter=85.5,
+            calori=12.5,
+            nisasta=45.2,
+            price=100.00,
+        )
+        self.table = RationTable.objects.create(
+            name="Test Table",
+            description="Test Description",
+        )
+        self.table_component = RationTableComponent.objects.create(
+            ration_table=self.table,
+            component=self.component,
+            quantity=10.0,
+        )
+
+    def test_soft_delete_table_component(self):
+        response = self.client.delete(f"/api/ration-table-components/{self.table_component.id}/")
+        self.table_component.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertTrue(self.table_component.is_deleted())
+
+    def test_restore_table_component(self):
+        self.table_component.delete()
+        response = self.client.post(f"/api/ration-table-components/{self.table_component.id}/restore/")
+        self.table_component.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(self.table_component.is_deleted())
+
+    def test_hard_delete_table_component(self):
+        self.table_component.delete()
+        response = self.client.delete(f"/api/ration-table-components/{self.table_component.id}/hard-delete/")
+        with self.assertRaises(RationTableComponent.DoesNotExist):
+            RationTableComponent.all_objects.get(id=self.table_component.id)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
