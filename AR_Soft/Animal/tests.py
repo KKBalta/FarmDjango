@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.utils.timezone import make_aware, datetime, timedelta, is_naive, now
-from ration_components.models import RationComponent, RationTable, RationTableComponent, RationComponentChange
+from ration_components.models import RationComponent, RationTable, RationTableComponent
 from animal_ration.models import AnimalRationLog
 from Animal.models import Animal
 from Farmer.models import Company
