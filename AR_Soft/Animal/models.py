@@ -26,6 +26,8 @@ class Animal(models.Model):
 class Group(models.Model):
     name = models.CharField(max_length=255)  # Name of the group
     description = models.TextField(null=True, blank=True)  # Optional description
+    created_at = models.DateTimeField(auto_now_add=True)  # Automatically set on creation
+    dry_matter = models.FloatField(null=True, blank=True)  # Dry matter content of the group
 
     def __str__(self):
         return self.name

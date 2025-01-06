@@ -14,7 +14,7 @@ class AnimalSerializer(serializers.ModelSerializer):
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
-        fields = ['id', 'name', 'description']
+        fields = ['id', 'name', 'description', 'created_at', 'dry_matter']
 
 
 class AnimalGroupSerializer(serializers.ModelSerializer):

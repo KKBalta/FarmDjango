@@ -15,6 +15,11 @@ class AnimalListView(generics.ListCreateAPIView):
     def get_queryset(self):
         queryset = Animal.objects.all()
 
+        # Filter by eartag if provided
+        eartag = self.request.query_params.get('eartag')
+        if eartag:
+            queryset = queryset.filter(eartag=eartag)
+
         # Filter by company_id if provided
         company_id = self.request.query_params.get('company_id')
         if company_id:
@@ -37,11 +42,11 @@ class AnimalListView(generics.ListCreateAPIView):
         # Filter by is_slaughtered if provided
         is_slaughtered = self.request.query_params.get('is_slaughtered')
         if is_slaughtered is not None:
-            # Convert '0', 'False' or similar values to False, and '1', 'True' to True
             is_slaughtered_bool = is_slaughtered.lower() in ['true', '1']
             queryset = queryset.filter(is_slaughtered=is_slaughtered_bool)
 
         return queryset
+
 
     def create(self, request, *args, **kwargs):
         """
