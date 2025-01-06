@@ -19,3 +19,13 @@ class Slaughter(models.Model):
 
     def __str__(self):
         return f"{self.animal.eartag} - {self.carcas_weight}kg on {self.date}"
+    
+    def calculate_profit(self):
+        # Ensure feed_cost and cost are not None
+        animal_cost = self.animal.cost or 0.0
+        feed_cost = float(self.animal.feed_cost or 0.0)
+        total = (self.sale_price * self.carcas_weight)
+        tax = total * (self.kdv)  # Calculate tax (KDV)
+        
+        # Profit calculation
+        return total - (animal_cost + feed_cost + tax)
