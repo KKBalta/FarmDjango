@@ -9,6 +9,13 @@ from .serializers import (
     RationTableComponentSerializer
 )
 
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
+from .models import RationTableComponent
+from .serializers import RationTableComponentSerializer
+
 class RationComponentViewSet(viewsets.ModelViewSet):
     queryset = RationComponent.objects.all()  # Default to ActiveManager
     serializer_class = RationComponentSerializer
@@ -108,14 +115,6 @@ class RationTableViewSet(viewsets.ModelViewSet):
         ration_table = self.get_object()
         cost = ration_table.compute_cost()
         return Response({'id': ration_table.id, 'name': ration_table.name, 'cost': cost})
-
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
-from .models import RationTableComponent
-from .serializers import RationTableComponentSerializer
-
 
 class RationTableComponentViewSet(viewsets.ModelViewSet):
     """

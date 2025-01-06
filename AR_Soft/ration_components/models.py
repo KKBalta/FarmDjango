@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.timezone import now
 from .manager import ActiveManager
+from decimal import Decimal
 
 class SoftDeleteModel(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -84,7 +85,25 @@ class RationTable(SoftDeleteModel):
             component.quantity * component.component.price
             for component in self.rationtablecomponent_set.all()
         )
+    def compute_total_dry_matter(self):
+        """Compute the total dry matter of the ration table."""
+        return sum(
+            Decimal(component.component.dry_matter) * Decimal(component.quantity)
+            for component in self.rationtablecomponent_set.all()
+        )
+    def compute_total_calori(self):
+        """Compute the total calori of the ration table."""
+        return sum(
+            Decimal(component.component.calori) * Decimal(component.quantity)
+            for component in self.rationtablecomponent_set.all()
+        )
 
+    def compute_total_nisasta(self):
+        """Compute the total nisasta of the ration table."""
+        return sum(
+            Decimal(component.component.nisasta) * Decimal(component.quantity)
+            for component in self.rationtablecomponent_set.all()
+        )
     def __str__(self):
         return self.name
 
