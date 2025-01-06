@@ -22,6 +22,11 @@ class WeightListView(generics.ListCreateAPIView):
         animal_id = self.request.query_params.get('animal_id')
         if animal_id:
             queryset = queryset.filter(animal_id=animal_id)
+
+        eartag = self.request.query_params.get('eartag')
+        if eartag:
+            queryset = queryset.filter(animal__eartag=eartag)
+
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -145,6 +150,7 @@ class GroupDailyGainView(APIView):
     """
     Returns daily weight gain info for *each* animal in a given group,
     using only the *last two* weight records per animal.
+    Also calculates the group's average daily gain rate.
     """
 
     def get(self, request, group_id):
@@ -152,11 +158,12 @@ class GroupDailyGainView(APIView):
         group = get_object_or_404(Group, pk=group_id)
 
         # 2) Find all animals in this group
-        # distinct() to avoid duplicates if an animal is in the same group multiple times (rare, but safe).
         animals_in_group = Animal.objects.filter(animal_groups__group=group).distinct()
 
         # 3) Prepare a list to hold the results
         daily_gains = []
+        total_gain = 0
+        valid_animals_count = 0
 
         for animal in animals_in_group:
             # 4) Get the last two Weight records for this animal
@@ -166,8 +173,6 @@ class GroupDailyGainView(APIView):
 
             # If fewer than 2 records, we can't compute daily gain
             if len(weights) < 2:
-                # You can choose to skip or include a placeholder.
-                # We'll just skip here.
                 continue
 
             latest_weight = weights[0]
@@ -177,12 +182,13 @@ class GroupDailyGainView(APIView):
             days_diff = (latest_weight.recorded_at - previous_weight.recorded_at).days
 
             if days_diff == 0:
-                # Can't compute daily gain if it's the same day
                 daily_gain = None
             else:
                 daily_gain = weight_diff / days_diff
+                total_gain += daily_gain  # Add to total gain for average calculation
+                valid_animals_count += 1
 
-            # 5) Append a dictionary with the results
+            # Append individual animal's daily gain info
             daily_gains.append({
                 "animal_id": animal.id,
                 "eartag": animal.eartag,
@@ -195,18 +201,24 @@ class GroupDailyGainView(APIView):
                 "daily_gain": daily_gain
             })
 
-        # 6) Return the aggregated data in one response
+        # Calculate group average daily gain
+        group_average_gain = total_gain / valid_animals_count if valid_animals_count > 0 else None
+
+        # Return the aggregated data
         return Response({
             "group_id": group_id,
             "group_name": group.name,
             "animals_count": animals_in_group.count(),
             "gains_count": len(daily_gains),  # how many animals had 2+ records
+            "group_average_daily_gain": group_average_gain,  # Average daily gain for the group
             "results": daily_gains
         })
+
 class GroupAllWeightGainView(APIView):
     """
     Returns *all* consecutive weight gains for each animal in a given group.
     Similar to 'AllWeightGainView', but done *per animal* in that group.
+    Also calculates the group's average daily gain rate over all records.
     """
 
     def get(self, request, group_id):
@@ -216,24 +228,23 @@ class GroupAllWeightGainView(APIView):
         # 2) Get all animals in the group (unique, just in case)
         animals_in_group = Animal.objects.filter(animal_groups__group=group).distinct()
 
-        # We'll gather results for each animal in this list
         group_gains = []
+        total_gain = 0
+        total_days = 0
 
         for animal in animals_in_group:
             # 3) Fetch *all* weight records for this animal, sorted ascending
             weights = Weight.objects.filter(animal=animal).order_by('recorded_at')
 
-            # If fewer than 2 records, we can't compute consecutive gains
             if len(weights) < 2:
                 group_gains.append({
                     "animal_id": animal.id,
                     "eartag": animal.eartag,
                     "records_count": len(weights),
-                    "gain_history": []  # No pairs to compute
+                    "gain_history": []
                 })
                 continue
 
-            # Build a list of consecutive-pair gains
             gain_history = []
             for i in range(len(weights) - 1):
                 current_weight = weights[i]
@@ -242,10 +253,11 @@ class GroupAllWeightGainView(APIView):
                 weight_diff = next_weight.weight - current_weight.weight
                 days_diff = (next_weight.recorded_at - current_weight.recorded_at).days
 
-                # daily_gain is None if days_diff=0 or partial for the ratio
                 daily_gain = None
                 if days_diff != 0:
                     daily_gain = weight_diff / days_diff
+                    total_gain += daily_gain
+                    total_days += days_diff
 
                 gain_history.append({
                     "start_date": current_weight.recorded_at,
@@ -257,7 +269,6 @@ class GroupAllWeightGainView(APIView):
                     "daily_gain": daily_gain
                 })
 
-            # Add to our overall group results
             group_gains.append({
                 "animal_id": animal.id,
                 "eartag": animal.eartag,
@@ -265,10 +276,14 @@ class GroupAllWeightGainView(APIView):
                 "gain_history": gain_history
             })
 
-        # 4) Return the final JSON
+        # Calculate group average daily gain
+        group_average_gain = total_gain / total_days if total_days > 0 else None
+
+        # Return the final JSON
         return Response({
             "group_id": group_id,
             "group_name": group.name,
             "animals_count": animals_in_group.count(),
+            "group_average_daily_gain": group_average_gain,  # Average daily gain for the group
             "results": group_gains
         })
