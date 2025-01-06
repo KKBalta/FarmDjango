@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'Slaughter',
     'animal_ration',
     'ration_components',
-    'ration_logs'
+    'ration_logs',
+    'django_celery_beat',  # Add Celery Beat for periodic tasks
 ]
 
 MIDDLEWARE = [
@@ -133,3 +134,23 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Celery Settings
+# Specify the Redis URL for Celery to use as the message broker
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+
+# Define the result backend (optional, but useful for debugging)
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+# Accept content in JSON format
+CELERY_ACCEPT_CONTENT = ['json']
+
+# Use JSON as the task serializer
+CELERY_TASK_SERIALIZER = 'json'
+
+# Timezone settings for Celery
+CELERY_TIMEZONE = 'UTC'
+
+# Celery Beat configuration
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
