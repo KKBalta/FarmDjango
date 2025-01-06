@@ -10,9 +10,12 @@ class RationComponentSerializer(serializers.ModelSerializer):
 
 # Serializer for RationTableComponent
 class RationTableComponentSerializer(serializers.ModelSerializer):
+    ration_table_name = serializers.CharField(source='ration_table.name', read_only=True)
+    component_name = serializers.CharField(source='component.name', read_only=True)
+
     class Meta:
         model = RationTableComponent
-        fields = ['id', 'ration_table', 'component', 'quantity']
+        fields = ['id', 'ration_table', 'ration_table_name', 'component', 'component_name', 'quantity']
 
 
 # Serializer for RationTable
