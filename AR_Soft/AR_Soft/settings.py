@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 # Default ration table name
 DEFAULT_RATION_NAME = "Base Ration"
 
@@ -40,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'rest_framework.authtoken',
     'rest_framework',
     'Farmer',
     'Animal',
@@ -48,8 +51,19 @@ INSTALLED_APPS = [
     'animal_ration',
     'ration_components',
     'ration_logs',
+    'authentication',
     'django_celery_beat',  # Add Celery Beat for periodic tasks
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'authentication.permissions.PublicOrAuthenticated',
+    ],
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
