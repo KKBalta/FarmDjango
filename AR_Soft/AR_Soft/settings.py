@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'django_extensions',
     'rest_framework.authtoken',
     'rest_framework',
+    'corsheaders',  # CORS headers for React frontend
+    'drf_yasg',  # Swagger/OpenAPI documentation
     'Farmer',
     'Animal',
     'Weight',
@@ -68,12 +70,12 @@ REST_FRAMEWORK = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS middleware should be placed before CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
 ]
 
 ROOT_URLCONF = 'AR_Soft.urls'
@@ -168,3 +170,88 @@ CELERY_TIMEZONE = 'UTC'
 
 # Celery Beat configuration
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+
+
+# CORS settings for React frontend
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Vite React development server
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",  # Default React development server
+    "http://127.0.0.1:3000",
+]
+
+# For development only - uncomment this and comment out CORS_ALLOWED_ORIGINS if you're still having issues
+CORS_ALLOW_ALL_ORIGINS = True
+
+# If you want to allow credentials (cookies, etc.) to be sent in cross-origin requests
+CORS_ALLOW_CREDENTIALS = True
+
+# If you need to allow specific HTTP headers
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# If you need to allow specific HTTP methods
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+            'formatter': 'verbose',
+        },
+        'auth_file': {
+            'class': 'logging.FileHandler',
+            'filename': 'auth.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+        },
+        'authentication': {
+            'handlers': ['console', 'auth_file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+}
